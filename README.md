@@ -1,7 +1,74 @@
 # Test Repo for enabling podman in an OpenShift Pod
 
+## Experimental - aka not working yet
+
+This repo is for my attempts to get full `podman` capabilities working in OpenShift Dev Spaces (Eclipse Che)
+
+The capability is needed for the following non-exclusive list:
+
+* Java test-containers
+* AWS development with Localstack
+* Ansible development
+
+## Watch this space for a working demo - hopefully
 
 Enable User Namespaces in OpenShift:
+
+```bash
+oc patch nodes.config/cluster --type merge --patch '{"spec":{"cgroupMode":"v2"}}'
+```
+
+```bash
+oc patch FeatureGate cluster --type merge --patch '{"spec":{"featureSet":"TechPreviewNoUpgrade"}}'
+
+cat << EOF | oc apply -f -
+apiVersion: config.openshift.io/v1
+kind: FeatureGate
+metadata:
+  name: cluster 
+spec:
+  featureSet: TechPreviewNoUpgrade
+EOF
+```
+
+```json
+"featureGates": {
+    "APIPriorityAndFairness": true,
+    "BuildCSIVolumes": true,
+    "CSIDriverSharedResource": true,
+    "DownwardAPIHugePages": true,
+    "DynamicResourceAllocation": true,
+    "InsightsConfigAPI": true,
+    "MachineAPIProviderOpenStack": true,
+    "MatchLabelKeysInPodTopologySpread": true,
+    "NodeSwap": true,
+    "OpenShiftPodSecurityAdmission": true,
+    "PDBUnhealthyPodEvictionPolicy": true,
+    "RetroactiveDefaultStorageClass": true,
+    "RotateKubeletServerCertificate": true
+  },
+```
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: machineconfiguration.openshift.io/v1
+kind: KubeletConfig
+metadata:
+  name: enable-userns
+spec:
+  logLevel: 5
+  machineConfigPoolSelector:
+    matchLabels:
+      pools.operator.machineconfiguration.openshift.io/worker: ""
+  kubeletConfig:
+    featureGates:
+      APIPriorityAndFairness: true
+      DownwardAPIHugePages: true
+      RetroactiveDefaultStorageClass: false
+      RotateKubeletServerCertificate: true
+      UserNamespacesStatelessPodsSupport: true
+EOF
+```
 
 ```bash
 cat << EOF | butane | oc apply -f -

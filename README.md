@@ -12,36 +12,61 @@ The capability is needed for the following non-exclusive list:
 
 ## Watch this space for a working demo - hopefully
 
-Enable User Namespaces in OpenShift:
-
-```bash
-oc patch nodes.config/cluster --type merge --patch '{"spec":{"cgroupMode":"v2"}}'
-```
-
 ```bash
 cat << EOF | butane | oc apply -f -
 variant: openshift
 version: 4.13.0
 metadata:
   labels:
-    machineconfiguration.openshift.io/role: worker
-  name: subuid-subgid
+    machineconfiguration.openshift.io/role: master
+  name: nested-podman
 storage:
   files:
-  - path: /etc/subuid
+  - path: /etc/crio/crio.conf.d/99-nested-podman
     mode: 0644
     overwrite: true
     contents:
       inline: |
-        core:524288:65536
-        containers:600000:268435456
-  - path: /etc/subgid
+        [crio.runtime.workloads.nested-podman]
+        activation_annotation = "io.openshift.nested-podman"
+        allowed_annotations = [
+          "io.kubernetes.cri-o.Devices"
+        ]
+        [crio.runtime]
+        allowed_devices=["/dev/fuse"]
+  - path: /etc/nested-podman/nested-podman.te
     mode: 0644
     overwrite: true
     contents:
       inline: |
-        core:524288:65536
-        containers:600000:268435456
+        module nested-podman 1.0;
+
+        require {
+          type container_t;
+          type devpts_t;
+          type tmpfs_t;
+          class filesystem mount;
+        }
+        allow container_t tmpfs_t:filesystem mount;
+        allow container_t devpts_t:filesystem mount;
+systemd:
+  units:
+  - contents: |
+      [Unit]
+      Description=Modify SeLinux Type container_t to allow devpts_t and tmpfs_t
+      DefaultDependencies=no
+      After=kubelet.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=bash -c "/bin/checkmodule -M -m -o /tmp/nested-podman.mod /etc/nested-podman/nested-podman.te && /bin/semodule_package -o /tmp/nested-podman.pp -m /tmp/nested-podman.mod && /sbin/semodule -i /tmp/nested-podman.pp"
+      TimeoutSec=0
+
+      [Install]
+      WantedBy=multi-user.target
+    enabled: true
+    name: systemd-nested-podman-selinux.service
 EOF
 ```
 
@@ -60,13 +85,9 @@ defaultAddCapabilities:
 - "SETUID"
 - "SETGID"
 runAsUser:
-  type: MustRunAsNonRoot
+  type: MustRunAsRange
 seLinuxContext:
   type: MustRunAs
-  seLinuxOptions:
-    type: spc_t
-seccompProfiles:
-- runtime/default
 supplementalGroups:
   type: RunAsAny
 users: []
@@ -80,46 +101,8 @@ volumes:
 - projected
 - secret
 EOF
-```
 
-Enable fuse-overlayfs
-
-```bash
-cat << EOF | oc apply -f -
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  name: fuse-device-plugin-daemonset
-  namespace: kube-system
-spec:
-  selector:
-    matchLabels:
-      name: fuse-device-plugin-ds
-  template:
-    metadata:
-      labels:
-        name: fuse-device-plugin-ds
-    spec:
-      nodeSelector:
-        node-role.kubernetes.io/worker: ""
-      hostNetwork: true
-      containers:
-      - image: quay.io/cgruver0/che/fuse-device-plugin:v1.1
-        name: fuse-device-plugin-ctr
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop: ["ALL"]
-        volumeMounts:
-          - name: device-plugin
-            mountPath: /var/lib/kubelet/device-plugins
-      volumes:
-        - name: device-plugin
-          hostPath:
-            path: /var/lib/kubelet/device-plugins
-      imagePullSecrets:
-        - name: registry-secret
-EOF
+oc adm policy add-scc-to-user -z cic default -n cic
 ```
 
 ```bash
@@ -129,7 +112,8 @@ kind: Pod
 metadata:
  name: podman-userns
  annotations:
-   io.kubernetes.cri-o.userns-mode: "auto:size=65536;keep-id=true"
+   io.kubernetes.cri-o.Devices: "/dev/fuse"
+   io.openshift.nested-podman: ""
 spec:
   containers:
   - name: userns
@@ -144,9 +128,6 @@ spec:
         - "SETFCAP"
         - "SETUID"
         - "SETGID"
-    resources:
-      limits:
-        github.com/fuse: 1
 EOF
 ```
 
@@ -179,7 +160,53 @@ mkdir ${HOME}/proc
 podman run -v ${HOME}/proc:/proc registry.access.redhat.com/ubi9/ubi-minimal echo hello
 ```
 
-## Below this line does not work
+## Below this line is experimenting and may not work
+
+Enable User Namespaces in OpenShift:
+
+```bash
+oc patch nodes.config/cluster --type merge --patch '{"spec":{"cgroupMode":"v2"}}'
+```
+
+```bash
+cat << EOF | butane | oc apply -f -
+variant: openshift
+version: 4.13.0
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: nested-podman
+storage:
+  files:
+  - path: /etc/subuid
+    mode: 0644
+    overwrite: true
+    contents:
+      inline: |
+        core:524288:65536
+        containers:600000:268435456
+  - path: /etc/subgid
+    mode: 0644
+    overwrite: true
+    contents:
+      inline: |
+        core:524288:65536
+        containers:600000:268435456
+  - path: /etc/crio/crio.conf.d/99-nested-podman
+    mode: 0644
+    overwrite: true
+    contents:
+      inline: |
+        [crio.runtime.workloads.nested-podman]
+        activation_annotation = "io.openshift.nested-podman"
+        allowed_annotations = [
+          "io.kubernetes.cri-o.userns-mode",
+          "io.kubernetes.cri-o.Devices"
+        ]
+        [crio.runtime]
+        allowed_devices=["/dev/fuse"]
+EOF
+```
 
 ```bash
 oc patch FeatureGate cluster --type merge --patch '{"spec":{"featureSet":"TechPreviewNoUpgrade"}}'
@@ -227,11 +254,6 @@ spec:
       UserNamespacesStatelessPodsSupport: true
 EOF
 ```
-
-
-## io.kubernetes.cri-o.Devices: "/dev/fuse"
-
-
 
 ```bash
 cat << EOF | oc apply -f -
@@ -300,4 +322,200 @@ podman system migrate
 
 mkdir ${HOME}/proc
 podman run -v ${HOME}/proc:/proc registry.access.redhat.com/ubi9/ubi-minimal echo hello
+```
+
+```bash
+[crio.runtime.workloads.openshift-builder]
+activation_annotation = "io.openshift.builder"
+allowed_annotations = [
+  "io.kubernetes.cri-o.userns-mode",
+  "io.kubernetes.cri-o.Devices"
+]
+
+```
+
+Enable fuse-overlayfs
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fuse-device-plugin-daemonset
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: fuse-device-plugin-ds
+  template:
+    metadata:
+      labels:
+        name: fuse-device-plugin-ds
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/worker: ""
+      hostNetwork: true
+      containers:
+      - image: quay.io/cgruver0/che/fuse-device-plugin:v1.1
+        name: fuse-device-plugin-ctr
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+        volumeMounts:
+          - name: device-plugin
+            mountPath: /var/lib/kubelet/device-plugins
+      volumes:
+        - name: device-plugin
+          hostPath:
+            path: /var/lib/kubelet/device-plugins
+      imagePullSecrets:
+        - name: registry-secret
+EOF
+```
+
+```bash
+cat << EOF > /tmp/nested-podman.te
+module nested-podman 1.0;
+type nested_podman_t;
+require {
+        type nested_podman_t;
+        type devpts_t;
+        type tmpfs_t;
+        class filesystem mount;
+}
+allow nested_podman_t tmpfs_t:filesystem mount;
+allow nested_podman_t devpts_t:filesystem mount;
+EOF
+checkmodule -M -m -o /tmp/nested-podman.mod /tmp/nested-podman.te && 
+    semodule_package -o /tmp/nested-podman.pp -m /tmp/nested-podman.mod && 
+    semodule -i /tmp/nested-podman.pp
+
+cat << EOF > /tmp/nested-podman.te
+policy_module(nested_podman, 0.1)
+gen_require(`
+  type container_t;
+  type devpts_t;
+  type tmpfs_t;
+  class filesystem mount;
+ ')
+allow container_t tmpfs_t:filesystem mount;
+allow container_t devpts_t:filesystem mount;
+EOF
+
+
+cat <<EOF >> /tmp/podman.te
+module podman 1.0;
+
+require {
+	type container_t;
+	type devpts_t;
+	type tmpfs_t;
+	class filesystem mount;
+}
+
+#============= container_t ==============
+
+#!!!! This avc is allowed in the current policy
+allow container_t tmpfs_t:filesystem mount;
+allow container_t devpts_t:filesystem mount;
+EOF
+
+checkmodule -M -m -o /tmp/podman.mod /tmp/podman.te && 
+    semodule_package -o /tmp/podman.pp -m /tmp/podman.mod           && 
+    semodule -i /tmp/podman.pp
+```
+
+```bash
+ausearch -m AVC -ts recent
+```
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: cic
+priority: null
+readOnlyRootFilesystem: false
+defaultAddCapabilities:
+- "MKNOD"
+- "SYS_CHROOT"
+- "SETFCAP"
+- "SETUID"
+- "SETGID"
+runAsUser:
+  type: MustRunAsRange
+seLinuxContext:
+  type: MustRunAs
+  seLinuxOptions:
+    type: devpts_t
+    type: container_t
+supplementalGroups:
+  type: RunAsAny
+users: []
+volumes:
+- configMap
+- csi
+- downwardAPI
+- emptyDir
+- ephemeral
+- persistentVolumeClaim
+- projected
+- secret
+EOF
+```
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+ name: podman-userns
+ annotations:
+   io.kubernetes.cri-o.Devices: "/dev/fuse"
+   io.kubernetes.cri-o.userns-mode: "auto:size=65536;keep-id=true"
+   io.openshift.nested-podman: ""
+spec:
+  containers:
+  - name: userns
+    image: quay.io/cgruver0/che/che-dev-image:latest
+    command: ["tail", "-f", "/dev/null"]
+    securityContext:
+      runAsUser: 0
+      allowPrivilegeEscalation: true
+      capabilities:
+        add:
+        - "SYS_ADMIN"
+        - "MKNOD"
+        - "SYS_CHROOT"
+        - "SETFCAP"
+        - "SETUID"
+        - "SETGID"
+EOF
+```
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+ name: podman-userns
+ annotations:
+   io.kubernetes.cri-o.Devices: "/dev/fuse"
+   io.kubernetes.cri-o.userns-mode: "auto:size=65536;keep-id=true"
+   io.openshift.nested-podman: ""
+spec:
+ containers:
+   - name: userns
+     image: quay.io/podman/stable
+     command: ["tail", "-f", "/dev/null"]
+     securityContext:
+       capabilities:
+         add:
+           - "SYS_ADMIN"
+           - "MKNOD"
+           - "SYS_CHROOT"
+           - "SETFCAP"
+EOF
 ```

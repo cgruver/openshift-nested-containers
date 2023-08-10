@@ -10,7 +10,9 @@ The capability is needed for the following non-exclusive list:
 * AWS development with Localstack
 * Ansible development
 
-## Watch this space for a working demo - hopefully
+## Working Demo Here - [Eclipse Che / OpenShift Dev Spaces - Podman With Fuse Overlay](https://upstreamwithoutapaddle.com/blog%20post/2023/08/10/Podman-In-Dev-Spaces-With-Fuse-Overlay.html)
+
+## Raw Notes & Scratch Pad
 
 ```bash
 cat << EOF | butane | oc apply -f -

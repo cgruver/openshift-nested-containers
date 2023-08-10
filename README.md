@@ -519,3 +519,61 @@ spec:
            - "SETFCAP"
 EOF
 ```
+
+```bash
+module setest 1.0;
+
+require {
+        type sysfs_t;
+        type container_t;
+        type nsfs_t;
+        type tracefs_t;
+        type devpts_t;
+        type openvswitch_load_module_t;
+        class dir search;
+        class filesystem { remount unmount };
+        class chr_file open;
+}
+
+#============= container_t ==============
+allow container_t devpts_t:chr_file open;
+allow container_t nsfs_t:filesystem unmount;
+allow container_t sysfs_t:filesystem remount;
+
+#============= openvswitch_load_module_t ==============
+allow openvswitch_load_module_t tracefs_t:dir search;
+```
+
+```bash
+cat << EOF > /tmp/nested-podman.te
+module nested-podman 1.0;
+
+require {
+  type container_t;
+  type devpts_t;
+  type tmpfs_t;
+  type sysfs_t;
+  type nsfs_t;
+  type proc_t;
+  class chr_file open;
+  class filesystem { mount remount unmount };
+}
+allow container_t tmpfs_t:filesystem mount;
+allow container_t devpts_t:filesystem mount;
+allow container_t devpts_t:filesystem remount;
+allow container_t devpts_t:chr_file open;
+allow container_t nsfs_t:filesystem unmount;
+allow container_t sysfs_t:filesystem remount;
+allow container_t proc_t:filesystem mount;
+EOF
+```
+
+```bash
+checkmodule -M -m -o /tmp/nested-podman.mod /tmp/nested-podman.te && 
+    semodule_package -o /tmp/nested-podman.pp -m /tmp/nested-podman.mod && 
+    semodule -i /tmp/nested-podman.pp
+```
+
+```bash
+audit2allow -a -M setest
+```

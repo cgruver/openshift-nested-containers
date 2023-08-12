@@ -164,12 +164,6 @@ podman run -v ${HOME}/proc:/proc registry.access.redhat.com/ubi9/ubi-minimal ech
 
 ## Below this line is experimenting and may not work
 
-Enable User Namespaces in OpenShift:
-
-```bash
-oc patch nodes.config/cluster --type merge --patch '{"spec":{"cgroupMode":"v2"}}'
-```
-
 ```bash
 cat << EOF | butane | oc apply -f -
 variant: openshift
@@ -429,10 +423,6 @@ checkmodule -M -m -o /tmp/podman.mod /tmp/podman.te &&
 ```
 
 ```bash
-ausearch -m AVC -ts recent
-```
-
-```bash
 cat << EOF | oc apply -f -
 apiVersion: security.openshift.io/v1
 kind: SecurityContextConstraints
@@ -579,3 +569,325 @@ checkmodule -M -m -o /tmp/nested-podman.mod /tmp/nested-podman.te &&
 ```bash
 audit2allow -a -M setest
 ```
+
+```bash
+ausearch -m AVC -ts recent
+```
+
+```bash
+cat << EOF > ~/.config/containers/containers.conf                              
+[containers]
+netns="host"
+volumes=[
+  "${HOME}/proc:/proc:rw"
+]
+EOF
+```
+
+## Podman With Systemd
+
+Enable User Namespaces in OpenShift:
+
+```bash
+oc patch nodes.config/cluster --type merge --patch '{"spec":{"cgroupMode":"v2"}}'
+
+cat << EOF | butane | oc apply -f -
+variant: openshift
+version: 4.13.0
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: userns
+storage:
+  files:
+  - path: /etc/crio/crio.conf.d/99-userns
+    mode: 0644
+    overwrite: true
+    contents:
+      inline: |
+        [crio.runtime.workloads.userns]
+        activation_annotation = "io.kubernetes.cri-o.userns-mode"
+        allowed_annotations = [
+          "io.kubernetes.cri-o.userns-mode"
+        ]
+  - path: /etc/subuid
+    mode: 0644
+    overwrite: true
+    contents:
+      inline: |
+        core:524288:65536
+        containers:600000:268435456
+  - path: /etc/subgid
+    mode: 0644
+    overwrite: true
+    contents:
+      inline: |
+        core:524288:65536
+        containers:600000:268435456
+EOF
+```
+
+## Working Combo - SCC + POD
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: cic
+priority: null
+readOnlyRootFilesystem: false
+defaultAddCapabilities:
+- "MKNOD"
+- "SYS_CHROOT"
+- "SETFCAP"
+- "SETUID"
+- "SETGID"
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: MustRunAs
+supplementalGroups:
+  type: RunAsAny
+users: []
+volumes:
+- configMap
+- csi
+- downwardAPI
+- emptyDir
+- ephemeral
+- persistentVolumeClaim
+- projected
+- secret
+EOF
+
+oc adm policy add-scc-to-user cic -z default -n cic2
+```
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: podman-localstack-test
+  annotations:
+    io.kubernetes.cri-o.userns-mode: "auto:size=65536;keep-id=true"
+    # io.kubernetes.cri-o.userns-mode: "auto:size=65536;map-to-root=true"
+    # io.kubernetes.cri-o.userns-mode: "auto"
+    io.kubernetes.cri-o.Devices: "/dev/fuse"
+    io.openshift.nested-podman: ""
+spec:
+  containers:
+  - name: userns
+    image: quay.io/cgruver0/che/che-dev-image:init
+    command: ["/sbin/init"]
+    securityContext:
+      runAsNonRoot: false
+      allowPrivilegeEscalation: true
+      readOnlyRootFilesystem: false
+      capabilities:
+        add:
+        - "MKNOD"
+        - "SYS_CHROOT"
+        - "SETFCAP"
+        - "SETUID"
+        - "SETGID"
+EOF
+```
+
+## Reduce Priv Test
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: cic
+priority: null
+readOnlyRootFilesystem: false
+defaultAddCapabilities:
+- "MKNOD"
+- "SYS_CHROOT"
+- "SETFCAP"
+- "SETUID"
+- "SETGID"
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: MustRunAs
+supplementalGroups:
+  type: RunAsAny
+users: []
+volumes:
+- configMap
+- csi
+- downwardAPI
+- emptyDir
+- ephemeral
+- persistentVolumeClaim
+- projected
+- secret
+EOF
+
+oc adm policy add-scc-to-user cic -z default -n cic2
+```
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: podman-localstack-test
+  annotations:
+    # io.kubernetes.cri-o.userns-mode: "auto:size=65536;keep-id=true"
+    # io.kubernetes.cri-o.userns-mode: "auto:size=65536;map-to-root=true"
+    # io.kubernetes.cri-o.userns-mode: "auto"
+    io.kubernetes.cri-o.userns-mode: "auto:size=65536"
+    io.kubernetes.cri-o.Devices: "/dev/fuse"
+    io.openshift.nested-podman: ""
+spec:
+  containers:
+  - name: userns
+    image: quay.io/cgruver0/che/che-dev-image:init
+    command: ["/sbin/init"]
+    securityContext:
+      runAsNonRoot: false
+      allowPrivilegeEscalation: true
+      readOnlyRootFilesystem: false
+      capabilities:
+        add:
+        - "MKNOD"
+        - "SYS_CHROOT"
+        - "SETFCAP"
+        - "SETUID"
+        - "SETGID"
+EOF
+```
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: podman-localstack-test
+  annotations:
+    io.kubernetes.cri-o.userns-mode: "auto:size=65536"
+    io.kubernetes.cri-o.Devices: "/dev/fuse"
+    io.openshift.nested-podman: ""
+spec:
+  containers:
+  - name: userns
+    image: quay.io/cgruver0/che/che-dev-image:init
+    command: ["/sbin/init"]
+    securityContext:
+      runAsNonRoot: false
+      allowPrivilegeEscalation: true
+      readOnlyRootFilesystem: false
+EOF
+```
+
+```bash
+oc patch scc container-build --type merge --patch '{"runAsUser":{"type":"RunAsAny"}}'
+```
+
+## Needed After Enabling CgroupsV2
+
+```bash
+module setest 1.0;
+
+require {
+	type devpts_t;
+	type sysfs_t;
+	type nsfs_t;
+	type container_init_t;
+	type proc_t;
+	type container_t;
+	type cgroup_t;
+	class filesystem { mount remount unmount };
+	class chr_file open;
+	class file watch;
+}
+
+#============= container_init_t ==============
+allow container_init_t cgroup_t:filesystem remount;
+
+#============= container_t ==============
+
+#!!!! This avc can be allowed using the boolean 'container_manage_cgroup'
+allow container_t cgroup_t:file watch;
+allow container_t cgroup_t:filesystem remount;
+allow container_t devpts_t:chr_file open;
+allow container_t devpts_t:filesystem remount;
+allow container_t nsfs_t:filesystem unmount;
+allow container_t proc_t:filesystem mount;
+allow container_t sysfs_t:filesystem remount;
+```
+
+## OpenShift Operator for SeLinux
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: operatorhubio
+  namespace: openshift-marketplace
+spec:
+  displayName: Community Operators
+  image: quay.io/operator-framework/upstream-community-operators:latest
+  publisher: OperatorHub.io
+  sourceType: grpc
+EOF
+```
+
+```yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-security-profiles
+  namespace: openshift-security-profiles
+spec:
+  upgradeStrategy: Default
+--- 
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: security-profiles-operator
+  namespace: openshift-security-profiles
+spec:
+  channel: release-alpha-rhel-8
+  installPlanApproval: Automatic
+  name: security-profiles-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+```
+
+```bash
+# Install security profile
+oc create namespace openshift-security-profiles
+oc apply -f ./security-profiles-operator/operator.yaml
+
+
+# wait a few seconds
+
+
+oc patch spod spod -n openshift-security-profiles --type='json' -p='[{"op": "add", "path": "/spec/selinuxOptions/allowedSystemProfiles/-", "value":"net_container"}]'
+oc apply -f ./security-profiles-operator/selinux-profile.yaml -n openshift-security-profiles
+
+```
+
+```yaml
+apiVersion: security-profiles-operator.x-k8s.io/v1alpha2
+kind: SelinuxProfile
+metadata:
+  name: allow-csi-socket
+spec:
+  allow:
+    var_run_t:
+      sock_file:
+        - write        
+  inherit:
+    - name: net_container
+    - name: container
+  permissive: false
+  ```

@@ -1,0 +1,54 @@
+schemaVersion: 2.2.0
+attributes:
+  controller.devfile.io/storage-type: per-workspace
+metadata:
+  name: che-workspace
+components:
+- name: dev-tools
+  container: 
+    image: quay.io/cgruver0/che/che-dev-image:fuse
+    memoryLimit: 6Gi
+    mountSources: true
+    env:
+    - name: SHELL
+      value: "/bin/zsh"
+    - name: VSCODE_DEFAULT_WORKSPACE
+      value: "/projects/openshift-nested-containers/my-workspace.code-workspace"
+- volume:
+    size: 10Gi
+  name: projects
+- name: oc-cli
+  container:
+    args:
+      - '-c'
+      - >-
+        mkdir -p /projects/bin && cp /usr/bin/oc /projects/bin/oc && cp /usr/bin/kubectl /projects/bin/kubectl
+    command:
+      - /bin/bash
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    sourceMapping: /projects
+    mountSources: true
+    memoryLimit: 256M
+- name: user-ns
+  container:
+    image: quay.io/cgruver0/che/che-dev-image:fuse
+    command:
+      - /bin/bash
+    args:
+      - '-c'
+      - >-
+        USER=$(whoami) ; START_ID=$(( $(id -u)+1 )) ; echo "${USER}:${START_ID}:2147483646" > /etc/subuid ; echo "${USER}:${START_ID}:2147483646" > /etc/subgid
+    memoryLimit: 64M
+commands:
+- apply:
+    component: oc-cli
+    label: Copy OpenShift CLI
+  id: cp-oc-cli
+- apply:
+    component: user-ns
+    label: Set User Namespace
+  id: set-userns
+events:
+  preStart:
+    - cp-oc-cli
+    - set-userns

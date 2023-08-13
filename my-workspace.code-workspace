@@ -1,0 +1,27 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"extensions": {
+		"recommendations": [
+			"redhat.vscode-yaml",
+			"redhat.java",
+			"redhat.vscode-quarkus",
+			"redhat.vscode-openshift-connector",
+			"mhutchie.git-graph",
+			"eamodio.gitlens",
+			"streetsidesoftware.code-spell-checker",
+			"johnpapa.winteriscoming",
+			"cnshenj.vscode-task-manager",
+			"angular.ng-template",
+			"johnpapa.angular2"
+		]
+	},
+	"settings": {
+		"workbench.colorTheme": "Winter is Coming (Light)",
+		"workbench.preferredDarkColorTheme": "Winter is Coming (Dark Blue)",
+		"workbench.preferredLightColorTheme": "Winter is Coming (Light)"
+	}
+}

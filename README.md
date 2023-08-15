@@ -892,3 +892,6 @@ spec:
   permissive: false
   ```
   
+```bash
+podman system service --time=0 unix:///tmp/podman.sock
+```

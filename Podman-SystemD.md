@@ -50,6 +50,19 @@ storage:
         ]
         [crio.runtime]
         allowed_devices=["/dev/fuse"]
+EOF
+```
+
+```bash
+cat << EOF | butane | oc apply -f -
+variant: openshift
+version: 4.13.0
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: userns-podman-fuse-selinux
+storage:
+  files:
   - path: /etc/nested-podman/nested-podman.te
     mode: 0644
     overwrite: true
@@ -80,6 +93,7 @@ storage:
         allow container_t cgroup_t:filesystem remount;
         allow container_t proc_t:filesystem mount;
         allow container_init_t cgroup_t:filesystem remount;
+        allow container_init_t sysfs_t:filesystem remount;
 systemd:
   units:
   - contents: |
@@ -135,7 +149,7 @@ volumes:
 - secret
 EOF
 
-oc adm policy add-scc-to-user cic -z default -n cic2
+oc adm policy add-scc-to-user cic -z default -n cic
 ```
 
 ```bash
@@ -145,9 +159,9 @@ kind: Pod
 metadata:
   name: podman-localstack-test
   annotations:
-    io.kubernetes.cri-o.userns-mode: "auto:size=65536;keep-id=true"
+    # io.kubernetes.cri-o.userns-mode: "auto:size=65536;keep-id=true"
     # io.kubernetes.cri-o.userns-mode: "auto:size=65536;map-to-root=true"
-    # io.kubernetes.cri-o.userns-mode: "auto"
+    io.kubernetes.cri-o.userns-mode: "auto"
     io.kubernetes.cri-o.Devices: "/dev/fuse"
     io.openshift.nested-podman: ""
 spec:
@@ -157,6 +171,30 @@ spec:
     command: ["/sbin/init"]
     securityContext:
       runAsNonRoot: false
+      # runAsUser: 0
+      allowPrivilegeEscalation: true
+      readOnlyRootFilesystem: false
+EOF
+```
+
+```bash
+oc adm policy add-scc-to-user container-build -z default -n cic
+
+cat << EOF | oc apply -n cic -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: podman-localstack-test
+  annotations:
+    io.kubernetes.cri-o.userns-mode: "auto:size=65536;keep-id=true"
+    io.kubernetes.cri-o.Devices: "/dev/fuse"
+    io.openshift.nested-podman: ""
+spec:
+  containers:
+  - name: init-test
+    image: quay.io/cgruver0/che/che-dev-image:init
+    command: ["/sbin/init"]
+    securityContext:
       allowPrivilegeEscalation: true
       readOnlyRootFilesystem: false
       capabilities:
@@ -167,4 +205,71 @@ spec:
         - "SETUID"
         - "SETGID"
 EOF
+```
+
+
+
+module setest 1.0;
+
+require {
+	type tracefs_t;
+	type openvswitch_load_module_t;
+	type openvswitch_t;
+	class dir search;
+	class cap_userns net_broadcast;
+}
+
+#============= openvswitch_load_module_t ==============
+allow openvswitch_load_module_t tracefs_t:dir search;
+
+#============= openvswitch_t ==============
+allow openvswitch_t self:cap_userns net_broadcast;
+
+module setest 1.0;
+
+require {
+	type tracefs_t;
+	type openvswitch_load_module_t;
+	type openvswitch_t;
+	class dir search;
+	class cap_userns net_broadcast;
+}
+
+#============= openvswitch_load_module_t ==============
+
+#!!!! This avc is allowed in the current policy
+allow openvswitch_load_module_t tracefs_t:dir search;
+
+#============= openvswitch_t ==============
+
+#!!!! This avc is allowed in the current policy
+allow openvswitch_t self:cap_userns net_broadcast;
+
+```bash
+module nested-podman 1.0;
+
+require {
+  type container_t;
+  type container_init_t;
+  type cgroup_t;
+  type proc_t;
+  type devpts_t;
+  type tmpfs_t;
+  type sysfs_t;
+  type nsfs_t;
+  class chr_file open;
+  class file watch;
+  class filesystem { mount remount unmount };
+}
+allow container_t tmpfs_t:filesystem mount;
+allow container_t devpts_t:filesystem mount;
+allow container_t devpts_t:filesystem remount;
+allow container_t devpts_t:chr_file open;
+allow container_t nsfs_t:filesystem unmount;
+allow container_t sysfs_t:filesystem remount;
+allow container_t cgroup_t:file watch;
+allow container_t cgroup_t:filesystem remount;
+allow container_t proc_t:filesystem mount;
+allow container_init_t cgroup_t:filesystem remount;
+allow container_init_t sysfs_t:filesystem remount;
 ```

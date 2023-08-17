@@ -5,6 +5,8 @@ metadata:
   name: che-workspace
 components:
 - name: dev-tools
+  attributes:
+    pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.podman-fuse":""}}}
   container: 
     image: quay.io/cgruver0/che/che-dev-image:fuse
     memoryLimit: 6Gi

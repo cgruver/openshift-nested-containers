@@ -9,7 +9,7 @@ version: 4.13.0
 metadata:
   labels:
     machineconfiguration.openshift.io/role: ${NODE_ROLE}
-  name: podman-dev-fuse-${NODE_ROLE}
+  name: podman-dev-fuse-tun-${NODE_ROLE}
 storage:
   files:
   - path: /etc/crio/crio.conf.d/99-podman-fuse

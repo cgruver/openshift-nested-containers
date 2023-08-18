@@ -39,6 +39,7 @@ components:
     args:
       - '-c'
       - >-
+        echo ${HOME} ; \
         if [ ! -d "${HOME}" ] ; \
         then mkdir -p "${HOME}" ; \
         fi ; \

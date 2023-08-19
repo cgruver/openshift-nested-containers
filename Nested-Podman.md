@@ -40,6 +40,7 @@ storage:
 
         require {
           type container_t;
+          type cgroup_t;
           type devpts_t;
           type tmpfs_t;
           type sysfs_t;
@@ -52,7 +53,9 @@ storage:
         allow container_t devpts_t:filesystem remount;
         allow container_t devpts_t:chr_file open;
         allow container_t nsfs_t:filesystem unmount;
+        allow container_t sysfs_t:filesystem mount;
         allow container_t sysfs_t:filesystem remount;
+        allow container_t cgroup_t:filesystem remount;
 systemd:
   units:
   - contents: |

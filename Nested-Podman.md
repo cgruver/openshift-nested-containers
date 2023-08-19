@@ -1,15 +1,13 @@
 # Notes for Working Demo
 
 ```bash
-NODE_ROLE=master
-
 cat << EOF | butane | oc apply -f -
 variant: openshift
 version: 4.13.0
 metadata:
   labels:
     machineconfiguration.openshift.io/role: ${NODE_ROLE}
-  name: podman-dev-fuse-tun-${NODE_ROLE}
+  name: nested-podman-${NODE_ROLE}
 storage:
   files:
   - path: /etc/crio/crio.conf.d/99-podman-fuse
@@ -27,19 +25,12 @@ storage:
           "/dev/fuse",
           "/dev/net/tun"
         ]
-EOF
-```
-
-```bash
-cat << EOF | butane | oc apply -f -
-variant: openshift
-version: 4.13.0
-metadata:
-  labels:
-    machineconfiguration.openshift.io/role: ${NODE_ROLE}
-  name: nested-podman-${NODE_ROLE}
-storage:
-  files:
+  - path: /etc/modules-load.d/podman-fuse.conf
+    mode: 0644
+    overwrite: true
+    contents:
+      inline: |
+        tun
   - path: /etc/nested-podman/nested-podman.te
     mode: 0644
     overwrite: true
@@ -53,10 +44,8 @@ storage:
           type tmpfs_t;
           type sysfs_t;
           type nsfs_t;
-          type kernel_t;
           class chr_file open;
           class filesystem { mount remount unmount };
-          class system module_request;
         }
         allow container_t tmpfs_t:filesystem mount;
         allow container_t devpts_t:filesystem mount;
@@ -64,7 +53,6 @@ storage:
         allow container_t devpts_t:chr_file open;
         allow container_t nsfs_t:filesystem unmount;
         allow container_t sysfs_t:filesystem remount;
-        allow container_t kernel_t:system module_request;
 systemd:
   units:
   - contents: |

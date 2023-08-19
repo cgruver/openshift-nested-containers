@@ -6,7 +6,7 @@ metadata:
 components:
 - name: dev-tools
   attributes:
-    pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.podman-fuse":""}},"spec": {"securityContext": {"sysctls": [{"name":"net.ipv4.conf.IFNAME.route_localnet"},{"value":1}]}}}
+    pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.podman-fuse":""}},"spec": {"securityContext": {"sysctls": [{"name":"net.ipv4.conf.IFNAME.route_localnet"},{"value":"1"}]}}}
   container: 
     image: quay.io/cgruver0/che/che-dev-image:fuse
     memoryLimit: 6Gi

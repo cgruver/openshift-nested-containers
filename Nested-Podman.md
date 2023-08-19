@@ -31,6 +31,7 @@ storage:
     contents:
       inline: |
         tun
+        rtnl-link-bridge
   - path: /etc/nested-podman/nested-podman.te
     mode: 0644
     overwrite: true
@@ -145,3 +146,5 @@ network_backend="cni"
 network_cmd_options=[
   "enable_ipv6=false"
 ]
+
+pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.podman-fuse":""}},"spec": {"securityContext": {"sysctls": ["net.ipv4.conf.IFNAME.route_localnet":1]}}}

@@ -147,4 +147,29 @@ network_cmd_options=[
   "enable_ipv6=false"
 ]
 
-pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.podman-fuse":""}},"spec": {"securityContext": {"sysctls": ["net.ipv4.conf.IFNAME.route_localnet":1]}}}
+pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.podman-fuse":""}},"spec": {"securityContext": {"sysctls": [{"name":"net.ipv4.conf.podman1.route_localnet","value":"1"},{"name":"net.ipv4.conf.podman2.route_localnet","value":"1"}]}}}
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: tuningnad
+  namespace: cgruver-che
+spec:
+  config: '{
+    "cniVersion": "0.4.0",
+    "name": "tuningnad",
+    "plugins": [{
+      "type": "bridge"
+      },
+      {
+      "type": "tuning",
+      "sysctl": {
+         "net.ipv4.conf.IFNAME.route_localnet": "1"
+        }
+    }
+  ]
+}'
+EOF
+```

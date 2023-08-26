@@ -895,3 +895,134 @@ spec:
 ```bash
 podman system service --time=0 unix:///tmp/podman.sock
 ```
+
+## KubeControllerManager
+
+```yaml
+  unsupportedConfigOverrides:
+    featureGates:
+      - ProcMountType=true
+```
+
+## KubeAPIServer
+
+```yaml
+  unsupportedConfigOverrides:
+    apiServerArguments:
+      feature-gates:
+        - ProcMountType=true
+```
+
+##
+
+{"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.podman-fuse":""}},"spec": {"securityContext":{"procMount": "Unmasked"}}}
+
+attributes:
+    pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.podman-fuse":""}},"spec": {"securityContext":{"procMount": "Unmasked", "seccompProfile": {"type": "Unconfined"}}}}
+  container: 
+
+require {
+        type cgroup_t;
+        type kernel_t;
+        type sysfs_t;
+        type container_t;
+        class system module_request;
+        class filesystem { mount remount };
+}
+
+allow container_t cgroup_t:filesystem remount;
+allow container_t kernel_t:system module_request;
+allow container_t sysfs_t:filesystem mount;
+
+
+sysctls:
+    - net.ipv4.conf.tun0.route_localnet=1    # Doesn't work as tun0 doesn't 
+                                             # exist yet at container start time
+    - net.ipv4.conf.default.route_localnet=1 # Workaround.
+
+require {
+        type kernel_t;
+        type devpts_t;
+        type cgroup_t;
+        type sysfs_t;
+        type container_t;
+        class filesystem { mount remount };
+        class system module_request;
+}
+
+allow container_t cgroup_t:filesystem remount;
+allow container_t devpts_t:filesystem mount;
+allow container_t kernel_t:system module_request;
+allow container_t sysfs_t:filesystem mount;
+
+
+[containers]
+netns="slirp4netns"
+volumes=[
+  "/home/user/proc:/proc:rw"
+]
+default_sysctls = [
+  "net.ipv4.conf.podman1.route_localnet=1",
+  "net.ipv4.ip_forward=1",
+  "net.ipv6.conf.all.autoconf=0"
+]
+[network]
+network_backend="cni"
+[engine]
+network_cmd_options=[
+  "enable_ipv6=false"
+]
+
+pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.podman-fuse":""}},"spec": {"securityContext": {"sysctls": [{"name":"net.ipv4.conf.podman1.route_localnet","value":"1"},{"name":"net.ipv4.conf.podman2.route_localnet","value":"1"}]}}}
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: tuningnad
+  namespace: cgruver-che
+spec:
+  config: '{
+    "cniVersion": "0.4.0",
+    "name": "tuningnad",
+    "plugins": [{
+      "type": "bridge"
+      },
+      {
+      "type": "tuning",
+      "sysctl": {
+         "net.ipv4.conf.IFNAME.route_localnet": "1"
+        }
+    }
+  ]
+}'
+EOF
+```
+
+```bash
+[containers]
+netns="private"
+volumes=[
+  "/home/user/proc:/proc:rw"
+]
+default_sysctls = []
+[engine]
+network_cmd_options=[
+  "enable_ipv6=false"
+]
+
+
+[containers]
+netns="slirp4netns"
+volumes=[
+  "/home/user/proc:/proc:rw"
+]
+default_sysctls = []
+[engine]
+network_cmd_options=[
+  "enable_ipv6=false"
+]
+[network]
+network_backend="cni"
+```

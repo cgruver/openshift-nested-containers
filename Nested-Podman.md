@@ -1,6 +1,8 @@
 # Notes for Working Demo
 
 ```bash
+NODE_ROLE=master
+
 cat << EOF | butane | oc apply -f -
 variant: openshift
 version: 4.13.0
@@ -32,6 +34,7 @@ storage:
       inline: |
         tun
         rtnl-link-bridge
+        ipt_addrtype
   - path: /etc/nested-podman/nested-podman.te
     mode: 0644
     overwrite: true
@@ -79,97 +82,56 @@ EOF
 ```
 
 ```bash
-podman system service --time=0 unix:///tmp/podman.sock
+cat << EOF | oc apply -f -
+apiVersion: config.openshift.io/v1
+kind: FeatureGate
+metadata:
+  name: cluster 
+spec:
+  customNoUpgrade:
+    enabled:
+      - ProcMountType
+  featureSet: CustomNoUpgrade
+EOF
 ```
 
 ```bash
-[containers]
-netns="private"
-volumes=[
-  "/home/user/proc:/proc:rw"
-]
-default_sysctls = []
-[engine]
-network_cmd_options=[
-  "enable_ipv6=false"
-]
-
-
-[containers]
-netns="slirp4netns"
-volumes=[
-  "/home/user/proc:/proc:rw"
-]
-default_sysctls = []
-[engine]
-network_cmd_options=[
-  "enable_ipv6=false"
-]
-[network]
-network_backend="cni"
+oc new-project cic
+oc adm policy add-scc-to-user container-build -z default -n cic
 ```
-
-sysctls:
-    - net.ipv4.conf.tun0.route_localnet=1    # Doesn't work as tun0 doesn't 
-                                             # exist yet at container start time
-    - net.ipv4.conf.default.route_localnet=1 # Workaround.
-
-require {
-        type kernel_t;
-        type devpts_t;
-        type cgroup_t;
-        type sysfs_t;
-        type container_t;
-        class filesystem { mount remount };
-        class system module_request;
-}
-
-allow container_t cgroup_t:filesystem remount;
-allow container_t devpts_t:filesystem mount;
-allow container_t kernel_t:system module_request;
-allow container_t sysfs_t:filesystem mount;
-
-
-[containers]
-netns="slirp4netns"
-volumes=[
-  "/home/user/proc:/proc:rw"
-]
-default_sysctls = [
-  "net.ipv4.conf.podman1.route_localnet=1",
-  "net.ipv4.ip_forward=1",
-  "net.ipv6.conf.all.autoconf=0"
-]
-[network]
-network_backend="cni"
-[engine]
-network_cmd_options=[
-  "enable_ipv6=false"
-]
-
-pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.podman-fuse":""}},"spec": {"securityContext": {"sysctls": [{"name":"net.ipv4.conf.podman1.route_localnet","value":"1"},{"name":"net.ipv4.conf.podman2.route_localnet","value":"1"}]}}}
 
 ```bash
 cat << EOF | oc apply -f -
-apiVersion: "k8s.cni.cncf.io/v1"
-kind: NetworkAttachmentDefinition
+apiVersion: v1
+kind: Pod
 metadata:
-  name: tuningnad
-  namespace: cgruver-che
+ name: podman-proc-mount
+ annotations:
+   io.kubernetes.cri-o.Devices: "/dev/fuse,/dev/net/tun"
+   io.openshift.podman-fuse: ""
 spec:
-  config: '{
-    "cniVersion": "0.4.0",
-    "name": "tuningnad",
-    "plugins": [{
-      "type": "bridge"
-      },
-      {
-      "type": "tuning",
-      "sysctl": {
-         "net.ipv4.conf.IFNAME.route_localnet": "1"
-        }
-    }
-  ]
-}'
+  containers:
+  - name: proc-mount
+    image: quay.io/cgruver0/che/che-dev-image:fuse
+    command: ["tail", "-f", "/dev/null"]
+    securityContext:
+      allowPrivilegeEscalation: true
+      procMount: Unmasked
+      capabilities:
+        add:
+        - "SETUID"
+        - "SETGID"
 EOF
+```
+
+```bash
+/entrypoint.sh
+nohup podman system service --time=0 unix:///tmp/podman.sock > podman-sys.log &
+export DOCKER_HOST="unix:///tmp/podman.sock"
+export TESTCONTAINERS_RYUK_DISABLED=true 
+export TESTCONTAINERS_CHECKS_DISABLE=true
+git clone https://github.com/cgruver/quarkus-kafka.git
+cd quarkus-kafka
+mvn clean
+mvn test
 ```

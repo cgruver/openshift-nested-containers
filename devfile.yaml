@@ -6,7 +6,7 @@ metadata:
 components:
 - name: dev-tools
   attributes:
-    pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.podman-fuse":""}},"spec": {"securityContext":{"procMount": "Unmasked"}}}
+    pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.podman-fuse":""}}}
   container: 
     image: quay.io/cgruver0/che/che-dev-image:fuse
     memoryLimit: 6Gi
@@ -16,6 +16,10 @@ components:
       value: "/bin/zsh"
     - name: VSCODE_DEFAULT_WORKSPACE
       value: "/projects/openshift-nested-containers/my-workspace.code-workspace"
+    - name: DOCKER_HOST
+      value: "unix:///tmp/podman.sock"
+    - name: CONTAINER_HOST
+      value: "unix:///tmp/podman.sock"
 - volume:
     size: 10Gi
   name: projects
@@ -32,6 +36,15 @@ components:
     mountSources: true
     memoryLimit: 256M
 commands:
+- exec:
+    label: "Start Podman Service"
+    component: dev-tools
+    workingDir: ${PROJECTS_ROOT}
+    commandLine: "podman --log-level debug system service --time=0 unix:///tmp/podman.sock"
+    group:
+      kind: run
+      isDefault: true
+  id: start-podman
 - apply:
     component: oc-cli
     label: Copy OpenShift CLI

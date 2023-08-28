@@ -17,7 +17,7 @@ __NOTE:__ *Do not apply these changes to a production or shared instance of OCP.
 
 1. Install `butane`:
 
-   [https://coreos.github.io/butane/](https://coreos.github.io/butane/){:target="_blank"}
+   [https://coreos.github.io/butane/](https://coreos.github.io/butane/)
 
    We need `butane` to assist with the creation of MachineConfigs.  It's really handy for that.
 

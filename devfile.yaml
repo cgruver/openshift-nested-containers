@@ -57,7 +57,7 @@ commands:
     label: "Start Localstack Service"
     component: dev-tools
     workingDir: ${PROJECTS_ROOT}
-    commandLine: "podman run --rm --name localstack_main -v ${HOME}/.cache/localstack/volume:/var/lib/localstack -v ${DOCKER_SOCK}:${DOCKER_SOCK} -p 0.0.0.0:4566:4566 -p 0.0.0.0:4510-4559:4510-4559 -e ACTIVATE_PRO=0 -e HOSTNAME=${HOSTNAME} -e LOCALSTACK_CLI=1 -e DEBUG=1 -e DOCKER_HOST=${DOCKER_HOST} -e SET_TERM_HANDLER=1 docker.io/localstack/localstack:latest"
+    commandLine: "mkdir -p ${HOME}/.cache/localstack/volume && podman run --rm --name localstack_main -v ${HOME}/.cache/localstack/volume:/var/lib/localstack -v ${DOCKER_SOCK}:${DOCKER_SOCK} -p 0.0.0.0:4566:4566 -p 0.0.0.0:4510-4559:4510-4559 -e ACTIVATE_PRO=0 -e HOSTNAME=${HOSTNAME} -e LOCALSTACK_CLI=1 -e DEBUG=1 -e DOCKER_HOST=${DOCKER_HOST} -e SET_TERM_HANDLER=1 docker.io/localstack/localstack:latest"
     group:
       kind: run
       isDefault: true

@@ -185,6 +185,8 @@ __NOTE:__ *Do not apply these changes to a production or shared instance of OCP.
 
 ## Demo of Quarkus Dev Services
 
+If the `Start Podman Service` task is not running, start it.
+
 ```bash
 cd /projects
 git clone https://github.com/cgruver/quarkus-kafka.git
@@ -194,6 +196,19 @@ mvn test
 ```
 
 ## Demo of AWS Dev With Localstack
+
+If the `Start Podman Service` task is running, stop it.
+
+```bash
+cat << EOF > ~/.config/containers/registries.conf
+unqualified-search-registries = ["registry.access.redhat.com", "registry.redhat.io", "docker.io"]
+short-name-mode = "permissive"
+EOF
+```
+
+Use the `Task Manager` extension to run the `Start Podman Service` task.
+
+the `Task Manager` extension to run the `Start Localstack Service` task.
 
 ```bash
 cd /projects

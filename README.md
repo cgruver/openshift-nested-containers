@@ -1,4 +1,4 @@
-# Test Repo for enabling podman in an OpenShift Pod
+# Test Repo for enabling podman in Eclipse Che / OpenShift Dev Spaces
 
 This repo is for my attempts to get full `podman` capabilities working in OpenShift Dev Spaces (Eclipse Che)
 

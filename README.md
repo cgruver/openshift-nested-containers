@@ -132,18 +132,6 @@ __NOTE:__ *Do not apply these changes to a production or shared instance of OCP.
 
    ```bash
    oc patch FeatureGate cluster --type merge --patch '{"spec":{"featureSet":"CustomNoUpgrade","customNoUpgrade":{"enabled":["ProcMountType"]}}}'
-
-   cat << EOF | oc apply -f -
-   apiVersion: config.openshift.io/v1
-   kind: FeatureGate
-   metadata:
-     name: cluster 
-   spec:
-     customNoUpgrade:
-       enabled:
-         - ProcMountType
-     featureSet: CustomNoUpgrade
-   EOF
    ```
 
 1. Edit the Eclipse Che `ClusterServiceVersion` to enable `/proc` unmasking:
@@ -159,17 +147,26 @@ __NOTE:__ *Do not apply these changes to a production or shared instance of OCP.
 
 ## Demo of AWS SAM CLI
 
-```bash
-cd /projects
-git clone https://github.com/aws/aws-sam-cli-app-templates.git
-sam init --name sam-py-app --architecture=x86_64 --location="aws-sam-cli-app-templates/python3.9/hello" --no-tracing --no-application-insights --no-input
-cd sam-py-app
-sam build
-nohup podman system service --time=0 unix:///tmp/podman.sock > /projects/podman-sys.log &
-export DOCKER_HOST="unix:///tmp/podman.sock"
-nohup sam local start-api --debug --docker-network=podman > /projects/sam.out &
-curl http://127.0.0.1:3000/hello
-```
+1. Create an Eclipse Che workspace from this git repo: `https://github.com/cgruver/openshift-nested-containers.git`
+
+1. Use the `Task Manager` extension to run the `Start Podman Service` task.
+
+1. Open a terminal in the workspace:
+
+   ```bash
+   cd /projects
+   git clone https://github.com/aws/aws-sam-cli-app-templates.git
+   sam init --name sam-py-app --architecture=x86_64 --location="aws-sam-cli-app-templates/python3.9/hello" --no-tracing --no-application-insights --no-input
+   cd sam-py-app
+   sam build
+   sam local start-api --debug --docker-network=podman
+   ```
+
+1. Open a second terminal to invoke the Lambda function:
+
+   ```bash
+   curl http://127.0.0.1:3000/hello
+   ```
 
 ## Demo of Quarkus Dev Services - *Does Not Work Yet*
 

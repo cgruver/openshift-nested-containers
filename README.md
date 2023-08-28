@@ -192,3 +192,13 @@ cd quarkus-kafka
 mvn clean
 mvn test
 ```
+
+## Demo of AWS Dev With Localstack
+
+```bash
+cd /projects
+git clone https://github.com/localstack/localstack-demo.git
+cd localstack-demo
+make deploy
+awslocal s3 ls s3://archive-bucket/
+```

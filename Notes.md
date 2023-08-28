@@ -1194,38 +1194,17 @@ nohup sam local start-api --debug --docker-network=podman > sam.out &
 curl http://127.0.0.1:3000/hello
 ```
 
-module nested-podman 1.0;
+## Localstack Notes
 
-require {
- type container_t;
- type cgroup_t;
- type devpts_t;
- type tmpfs_t;
- type sysfs_t;
- type nsfs_t;
- type devpts_t;
- type proc_t;
- type sysctl_t;
- type sysctl_irq_t;
- type proc_kcore_t;
- class dir mounton;
- class chr_file { setattr open} ;
- class file mounton;
- class filesystem { mount remount unmount };
-}
-allow container_t tmpfs_t:filesystem mount;
-allow container_t devpts_t:filesystem mount;
-allow container_t devpts_t:filesystem remount;
-allow container_t devpts_t:chr_file open;
-allow container_t devpts_t:chr_file setattr;
-allow container_t nsfs_t:filesystem unmount;
-allow container_t sysfs_t:filesystem mount;
-allow container_t sysfs_t:filesystem remount;
-allow container_t cgroup_t:filesystem remount;
-allow container_t proc_kcore_t:file mounton;
-allow container_t proc_t:dir mounton;
-allow container_t proc_t:file mounton;
-allow container_t proc_t:filesystem mount;
-allow container_t sysctl_irq_t:dir mounton;
-allow container_t sysctl_t:dir mounton;
-allow container_t sysctl_t:file mounton;
+```bash
+cat << EOF > ~/.config/containers/registries.conf
+unqualified-search-registries = ["registry.access.redhat.com", "registry.redhat.io", "docker.io"]
+short-name-mode = "permissive"
+EOF
+
+
+export DOCKER_SOCK=/tmp/podman.sock
+export DOCKER_CMD=podman
+DEBUG=1 localstack start
+
+```

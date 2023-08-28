@@ -6,7 +6,7 @@ metadata:
 components:
 - name: dev-tools
   attributes:
-    pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.podman-fuse":""}}}
+    pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.nested-podman":""}}}
   container: 
     image: quay.io/cgruver0/che/che-dev-image:fuse
     memoryLimit: 6Gi
@@ -40,7 +40,7 @@ commands:
     label: "Start Podman Service"
     component: dev-tools
     workingDir: ${PROJECTS_ROOT}
-    commandLine: "podman --log-level debug system service --time=0 unix:///tmp/podman.sock"
+    commandLine: "unset CONTAINER_HOST && podman --log-level debug system service --time=0 unix:///tmp/podman.sock"
     group:
       kind: run
       isDefault: true

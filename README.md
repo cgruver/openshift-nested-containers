@@ -94,17 +94,32 @@ __NOTE:__ *Do not apply these changes to a production or shared instance of OCP.
              type tmpfs_t;
              type sysfs_t;
              type nsfs_t;
-             class chr_file open;
+             type devpts_t;
+             type proc_t;
+             type sysctl_t;
+             type sysctl_irq_t;
+             type proc_kcore_t;
+             class dir mounton;
+             class chr_file { setattr open} ;
+             class file mounton;
              class filesystem { mount remount unmount };
            }
            allow container_t tmpfs_t:filesystem mount;
            allow container_t devpts_t:filesystem mount;
            allow container_t devpts_t:filesystem remount;
            allow container_t devpts_t:chr_file open;
+           allow container_t devpts_t:chr_file setattr;
            allow container_t nsfs_t:filesystem unmount;
            allow container_t sysfs_t:filesystem mount;
            allow container_t sysfs_t:filesystem remount;
            allow container_t cgroup_t:filesystem remount;
+           allow container_t proc_kcore_t:file mounton;
+           allow container_t proc_t:dir mounton;
+           allow container_t proc_t:file mounton;
+           allow container_t proc_t:filesystem mount;
+           allow container_t sysctl_irq_t:dir mounton;
+           allow container_t sysctl_t:dir mounton;
+           allow container_t sysctl_t:file mounton;
    systemd:
      units:
      - contents: |
@@ -168,14 +183,10 @@ __NOTE:__ *Do not apply these changes to a production or shared instance of OCP.
    curl http://127.0.0.1:3000/hello
    ```
 
-## Demo of Quarkus Dev Services - *Does Not Work Yet*
+## Demo of Quarkus Dev Services
 
 ```bash
 cd /projects
-nohup podman system service --time=0 unix:///tmp/podman.sock > podman-sys.log &
-export DOCKER_HOST="unix:///tmp/podman.sock"
-export TESTCONTAINERS_RYUK_DISABLED=true 
-export TESTCONTAINERS_CHECKS_DISABLE=true
 git clone https://github.com/cgruver/quarkus-kafka.git
 cd quarkus-kafka
 mvn clean

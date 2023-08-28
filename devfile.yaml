@@ -8,7 +8,7 @@ components:
   attributes:
     pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.nested-podman":""}}}
   container: 
-    image: quay.io/cgruver0/che/che-dev-image:fuse
+    image: quay.io/cgruver0/che/che-dev-image:nested
     memoryLimit: 6Gi
     mountSources: true
     env:
@@ -20,6 +20,10 @@ components:
       value: "unix:///tmp/podman.sock"
     - name: CONTAINER_HOST
       value: "unix:///tmp/podman.sock"
+    - name: TESTCONTAINERS_RYUK_DISABLED
+      value: "true" 
+    - name: TESTCONTAINERS_CHECKS_DISABLE
+      value: "true"
 - volume:
     size: 10Gi
   name: projects

@@ -208,7 +208,7 @@ EOF
 
 Use the `Task Manager` extension to run the `Start Podman Service` task.
 
-the `Task Manager` extension to run the `Start Localstack Service` task.
+Use the `Task Manager` extension to run the `Start Localstack Service` task.
 
 ```bash
 cd /projects

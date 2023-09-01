@@ -2,6 +2,18 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../ansible-demo"
+		},
+		{
+			"path": "../quarkus-dev-services-demo"
+		},
+		{
+			"path": "../sam-cli-demo"
+		},
+		{
+			"path": "../localstack-demo"
 		}
 	],
 	"extensions": {

@@ -2,7 +2,43 @@ schemaVersion: 2.2.0
 attributes:
   controller.devfile.io/storage-type: per-workspace
 metadata:
-  name: che-workspace
+  name: che-nested-containers-demo
+projects:
+- name: openshift-nested-containers
+  git:
+    checkoutFrom:
+      remote: origin
+      revision: main
+    remotes:
+      origin: https://github.com/cgruver/openshift-nested-containers.git
+- name: sam-cli-demo
+  git:
+    checkoutFrom:
+      remote: origin
+      revision: main
+    remotes:
+      origin: https://github.com/aws/aws-sam-cli-app-templates.git
+- name: quarkus-dev-services-demo
+  git:
+    checkoutFrom:
+      remote: origin
+      revision: main
+    remotes:
+      origin: https://github.com/cgruver/quarkus-kafka.git
+- name: localstack-demo
+  git:
+    checkoutFrom:
+      remote: origin
+      revision: main
+    remotes:
+      origin: https://github.com/localstack/localstack-demo.git
+- name: ansible-demo
+  git:
+    checkoutFrom:
+      remote: origin
+      revision: main
+    remotes:
+      origin: https://github.com/cgruver/che-ansible-demo.git
 components:
 - name: dev-tools
   attributes:

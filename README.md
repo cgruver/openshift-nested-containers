@@ -160,18 +160,28 @@ __NOTE:__ *Do not apply these changes to a production or shared instance of OCP.
 
    Replace the value with: `'{"allowPrivilegeEscalation": true,"procMount": "Unmasked","capabilities": {"add": ["SETGID", "SETUID"]}}'`
 
-## Demo of AWS SAM CLI
+## Run the Demos
 
 1. Create an Eclipse Che workspace from this git repo: `https://github.com/cgruver/openshift-nested-containers.git`
 
 1. Use the `Task Manager` extension to run the `Start Podman Service` task.
 
-1. Open a terminal in the workspace:
+### Demo of Ansible Navigator
+
+1. Open a terminal into the `ansible-demo` project.
+
+1. Run the following command:
 
    ```bash
-   cd /projects
-   git clone https://github.com/aws/aws-sam-cli-app-templates.git
-   sam init --name sam-py-app --architecture=x86_64 --location="aws-sam-cli-app-templates/python3.9/hello" --no-tracing --no-application-insights --no-input
+   ansible-navigator run helloworld.yaml
+   ```
+
+### Demo of AWS SAM CLI
+
+1. Open a terminal in the `sam-cli-demo` project:
+
+   ```bash
+   sam init --name sam-py-app --architecture=x86_64 --location="./python3.9/hello" --no-tracing --no-application-insights --no-input
    cd sam-py-app
    sam build
    sam local start-api --debug --docker-network=podman
@@ -183,37 +193,22 @@ __NOTE:__ *Do not apply these changes to a production or shared instance of OCP.
    curl http://127.0.0.1:3000/hello
    ```
 
-## Demo of Quarkus Dev Services
+### Demo of Quarkus Dev Services
 
-If the `Start Podman Service` task is not running, start it.
+1. Open a terminal in the `quarkus-dev-services-demo` project:
 
-```bash
-cd /projects
-git clone https://github.com/cgruver/quarkus-kafka.git
-cd quarkus-kafka
-mvn clean
-mvn test
-```
+   ```bash
+   mvn clean
+   mvn test
+   ```
 
 ## Demo of AWS Dev With Localstack
 
-If the `Start Podman Service` task is running, stop it.
+1. Use the `Task Manager` extension to run the `Start Localstack Service` task.
 
-```bash
-cat << EOF > ~/.config/containers/registries.conf
-unqualified-search-registries = ["registry.access.redhat.com", "registry.redhat.io", "docker.io"]
-short-name-mode = "permissive"
-EOF
-```
+1. Open a terminal in the `localstack-demo` project:
 
-Use the `Task Manager` extension to run the `Start Podman Service` task.
-
-Use the `Task Manager` extension to run the `Start Localstack Service` task.
-
-```bash
-cd /projects
-git clone https://github.com/localstack/localstack-demo.git
-cd localstack-demo
-make deploy
-awslocal s3 ls s3://archive-bucket/
-```
+   ```bash
+   make deploy
+   awslocal s3 ls s3://archive-bucket/
+   ```

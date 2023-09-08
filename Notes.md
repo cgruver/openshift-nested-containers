@@ -563,10 +563,11 @@ ausearch -m AVC -ts recent
 ```bash
 cat << EOF > ~/.config/containers/containers.conf                              
 [containers]
-netns="host"
+netns="none"
 volumes=[
   "${HOME}/proc:/proc:rw"
 ]
+default_sysctls = []
 EOF
 ```
 

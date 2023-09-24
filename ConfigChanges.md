@@ -1,5 +1,30 @@
 # OpenShift Configuration Changes
 
+## Enable `ProcMountType` feature gate
+
+```yaml
+apiVersion: config.openshift.io/v1
+kind: FeatureGate
+metadata:
+  annotations:
+    include.release.openshift.io/ibm-cloud-managed: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
+    release.openshift.io/create-only: "true"
+  creationTimestamp: "2023-09-07T21:20:45Z"
+  generation: 2
+  name: cluster
+  ownerReferences:
+  - apiVersion: config.openshift.io/v1
+    kind: ClusterVersion
+    name: version
+spec:
+  customNoUpgrade:
+    enabled:
+    - ProcMountType
+  featureSet: CustomNoUpgrade
+```
+
 ## CRI-O Enable `/dev/fuse` & `dev/net/tun`
 
 `/etc/crio/crio.conf.d/99-nested-podman`

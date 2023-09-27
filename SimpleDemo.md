@@ -184,7 +184,6 @@
    oc adm policy add-scc-to-user podman-scc <non-admin-user>
    ```
 
-
 1. Log into OpenShift as a non-admin user
 
 1. Create a new Project
@@ -230,6 +229,12 @@
    oc start-build podman-runner -n podman-demo -w -F   
    ```
 
+1. Grant the `podman-scc` SCC to the default service account in your namespace:
+
+   ```bash
+   oc adm policy add-scc-to-user podman-scc -z default -n podman-demo
+   ```
+
 1. Create a Pod as your non-cluster-admin user
 
    ```bash
@@ -246,7 +251,7 @@
      containers:
      - name: nested-podman
        image: image-registry.openshift-image-registry.svc:5000/podman-demo/podman-runner:latest
-       command: ["tail", "-f", "/dev/null"]
+       args: ["tail", "-f", "/dev/null"]
        securityContext:
          allowPrivilegeEscalation: true
          procMount: Unmasked
@@ -263,9 +268,14 @@
    oc rsh nested-podman
    ```
 
-1. Run the following:
+1. Run the following container:
 
    ```bash
    podman run -d --rm --name webserver -p 8080:80 quay.io/libpod/banner
+   ```
+
+1. Observe that the container is running and listening on port 8080:
+
+   ```bash
    curl http://localhost:8080
    ```

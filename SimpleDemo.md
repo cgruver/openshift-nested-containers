@@ -178,18 +178,19 @@
    EOF
    ```
 
-1. Log into OpenShift as a non-cluster-admin user
+1. As cluster-admin allow a non-admin user to use the podman SCC
+
+   ```bash
+   oc adm policy add-scc-to-user podman-scc <non-admin-user>
+   ```
+
+
+1. Log into OpenShift as a non-admin user
 
 1. Create a new Project
 
    ```bash
    oc new-project podman-demo
-   ```
-
-1. As cluster-admin allow the `default` service account in the new Project to use the podman SCC
-
-   ```bash
-   oc adm policy add-scc-to-user podman-scc -z default -n nested-containers
    ```
 
 1. Create an `ImageStream` and `BuildConfig` that supports a podman runtime:
@@ -257,6 +258,10 @@
    ```
 
 1. Open a shell into the Pod:
+
+   ```bash
+   oc rsh nested-podman
+   ```
 
 1. Run the following:
 

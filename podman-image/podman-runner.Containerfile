@@ -5,10 +5,13 @@ ENV BUILDAH_ISOLATION=chroot
 
 # Note: compat-openssl11 & libbrotli are needed for che-code (Che build of VS Code)
 
+COPY --chown=0:0 entrypoint.sh /entrypoint.sh
+
 RUN microdnf --disableplugin=subscription-manager install -y openssl compat-openssl11 libbrotli git tar which shadow-utils bash zsh wget jq podman buildah skopeo; \
     microdnf update -y ; \
     microdnf clean all ; \
     mkdir -p ${HOME} ; \
+    chmod +x /entrypoint.sh ; \
     #
     # Setup for root-less podman
     #

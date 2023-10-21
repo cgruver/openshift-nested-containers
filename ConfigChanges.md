@@ -93,3 +93,16 @@ allow container_t sysctl_irq_t:dir mounton;
 allow container_t sysctl_t:dir mounton;
 allow container_t sysctl_t:file mounton;
 ```
+
+## Enable a Dev Spaces workspace for Nested Containers
+
+```yaml
+components:
+- name: dev-tools
+  attributes:
+    pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.nested-podman":""}}}
+    container-overrides: {"securityContext": {"procMount": "Unmasked"}}
+  container: 
+    image: quay.io/cgruver0/che/che-dev-image:nested
+    # etc...
+```

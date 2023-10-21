@@ -149,17 +149,6 @@ __NOTE:__ *Do not apply these changes to a production or shared instance of OCP.
    oc patch FeatureGate cluster --type merge --patch '{"spec":{"featureSet":"CustomNoUpgrade","customNoUpgrade":{"enabled":["ProcMountType"]}}}'
    ```
 
-1. Edit the Eclipse Che `ClusterServiceVersion` to enable `/proc` unmasking:
-
-   ```bash
-   CHE_CSV=$(oc get csv -n openshift-operators -o name | grep "eclipse-che")
-   oc edit ${CHE_CSV} -n openshift-operators
-   ```
-
-   Find: `CHE_DEFAULT_SPEC_DEVENVIRONMENTS_CONTAINERSECURITYCONTEXT`
-
-   Replace the value with: `'{"allowPrivilegeEscalation": true,"procMount": "Unmasked","capabilities": {"add": ["SETGID", "SETUID"]}}'`
-
 ## Run the Demos
 
 1. Create an Eclipse Che workspace from this git repo: `https://github.com/cgruver/openshift-nested-containers.git`

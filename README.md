@@ -146,7 +146,7 @@ __NOTE:__ *Do not apply these changes to a production or shared instance of OCP.
    __Note:__ Because this feature gate is still in *Alpha* state, enabling it will render your cluster non-upgradable.
 
    ```bash
-   oc patch FeatureGate cluster --type merge --patch '{"spec":{"featureSet":"CustomNoUpgrade","customNoUpgrade":{"enabled":["ProcMountType"]}}}'
+   oc patch FeatureGate cluster --type merge --patch '{"spec":{"featureSet":"CustomNoUpgrade","customNoUpgrade":{"enabled":["ProcMountType","UserNamespacesSupport"]}}}'
    ```
 
 ## Run the Demos

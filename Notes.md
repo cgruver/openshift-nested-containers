@@ -1209,3 +1209,47 @@ export DOCKER_CMD=podman
 DEBUG=1 localstack start
 
 ```
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: container-run
+priority: null
+allowHostDirVolumePlugin: false
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+allowPrivilegeEscalation: true
+allowPrivilegedContainer: false
+allowedCapabilities:
+- SETUID
+- SETGID
+defaultAddCapabilities: null
+fsGroup:
+  type: MustRunAs
+groups: []
+readOnlyRootFilesystem: false
+requiredDropCapabilities:
+- KILL
+- MKNOD
+runAsUser:
+  type: MustRunAsRange
+seLinuxContext:
+  type: MustRunAs
+  seLinuxOptions:
+    type: container_engine_t
+supplementalGroups:
+  type: RunAsAny
+users: []
+volumes:
+- configMap
+- downwardAPI
+- emptyDir
+- persistentVolumeClaim
+- projected
+- secret
+EOF
+```

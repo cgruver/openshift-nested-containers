@@ -90,7 +90,7 @@ allow container_t sysctl_t:file mounton;
 components:
 - name: dev-tools
   attributes:
-    pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.nested-podman":""}}}
+    pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse","io.openshift.nested-podman":""}}}
     container-overrides: {"securityContext": {"procMount": "Unmasked"}}
   container: 
     image: quay.io/cgruver0/che/che-dev-image:nested

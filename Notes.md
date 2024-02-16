@@ -1253,3 +1253,187 @@ volumes:
 - secret
 EOF
 ```
+
+Add to ClusterRole for port-forward (unrelated to nested containers)
+```yaml
+- apiGroups:
+  - ""
+  resources:
+  - pods/portforward
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - deletecollection
+  - patch
+  - update
+```
+
+## Test Without ProcMountType
+
+```bash
+cat << EOF | butane | oc apply -f -
+variant: openshift
+version: 4.14.0
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: nested-podman-master
+storage:
+  files:
+  - path: /etc/crio/crio.conf.d/99-nested-podman
+    mode: 0644
+    overwrite: true
+    contents:
+      inline: |
+        [crio.runtime.workloads.nested-podman]
+        activation_annotation = "io.openshift.nested-podman"
+        allowed_annotations = [
+          "io.kubernetes.cri-o.Devices"
+        ]
+        [crio.runtime]
+        allowed_devices = [
+          "/dev/fuse",
+          "/dev/net/tun"
+        ]
+  - path: /etc/modules-load.d/nested-podman.conf
+    mode: 0644
+    overwrite: true
+    contents:
+      inline: |
+        tun
+        rtnl-link-bridge
+        ipt_addrtype
+  - path: /etc/nested-podman/nested-podman.te
+    mode: 0644
+    overwrite: true
+    contents:
+      inline: |
+        module nested-podman 1.0;
+
+        require {
+          type container_t;
+          type cgroup_t;
+          type devpts_t;
+          type tmpfs_t;
+          type sysfs_t;
+          type nsfs_t;
+          type devpts_t;
+          type proc_t;
+          type sysctl_t;
+          type sysctl_irq_t;
+          type proc_kcore_t;
+          class dir mounton;
+          class chr_file { setattr open} ;
+          class file mounton;
+          class filesystem { mount remount unmount };
+        }
+        allow container_t tmpfs_t:filesystem mount;
+        allow container_t devpts_t:filesystem mount;
+        allow container_t devpts_t:filesystem remount;
+        allow container_t devpts_t:chr_file open;
+        allow container_t devpts_t:chr_file setattr;
+        allow container_t nsfs_t:filesystem unmount;
+        allow container_t sysfs_t:filesystem mount;
+        allow container_t sysfs_t:filesystem remount;
+        allow container_t cgroup_t:filesystem remount;
+        allow container_t proc_kcore_t:file mounton;
+        allow container_t proc_t:dir mounton;
+        allow container_t proc_t:file mounton;
+        allow container_t proc_t:filesystem mount;
+        allow container_t sysctl_irq_t:dir mounton;
+        allow container_t sysctl_t:dir mounton;
+        allow container_t sysctl_t:file mounton;
+systemd:
+  units:
+  - contents: |
+      [Unit]
+      Description=Modify SeLinux Type container_t to allow devpts_t and tmpfs_t
+      DefaultDependencies=no
+      After=kubelet.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=bash -c "/bin/checkmodule -M -m -o /tmp/nested-podman.mod /etc/nested-podman/nested-podman.te && /bin/semodule_package -o /tmp/nested-podman.pp -m /tmp/nested-podman.mod && /sbin/semodule -i /tmp/nested-podman.pp"
+      TimeoutSec=0
+
+      [Install]
+      WantedBy=multi-user.target
+    enabled: true
+    name: systemd-nested-podman-selinux.service
+EOF
+```
+
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: security.openshift.io/v1
+metadata:
+  name: nested-podman-scc
+allowHostDirVolumePlugin: false
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+allowPrivilegeEscalation: true
+allowPrivilegedContainer: true
+allowedCapabilities:
+- SETUID
+- SETGID
+defaultAddCapabilities: null
+fsGroup:
+  type: MustRunAs
+groups: []
+kind: SecurityContextConstraints
+priority: null
+readOnlyRootFilesystem: false
+requiredDropCapabilities:
+- KILL
+- MKNOD
+runAsUser:
+  type: MustRunAsRange
+seLinuxContext:
+  type: MustRunAs
+supplementalGroups:
+  type: RunAsAny
+users: []
+volumes:
+- configMap
+- downwardAPI
+- emptyDir
+- persistentVolumeClaim
+- projected
+- secret
+EOF
+
+oc adm policy add-scc-to-user nested-podman-scc cgruver
+```
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+ name: nested-podman
+ namespace: podman-demo
+ annotations:
+   io.kubernetes.cri-o.Devices: "/dev/fuse,/dev/net/tun"
+   io.openshift.nested-podman: ""
+spec:
+  containers:
+  - name: nested-podman
+    image: image-registry.openshift-image-registry.svc:5000/podman-demo/podman-runner:latest
+    args: ["tail", "-f", "/dev/null"]
+    securityContext:
+      privileged: true
+      allowPrivilegeEscalation: true
+      procMount: Unmasked
+      capabilities:
+        add:
+        - "SETUID"
+        - "SETGID"
+EOF
+```

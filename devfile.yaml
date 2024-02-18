@@ -46,7 +46,7 @@ components:
     # container-overrides: {"securityContext": {"procMount": "Unmasked"}}
     container-overrides: {"securityContext": {"privileged": true}}
   container: 
-    image: quay.io/cgruver0/che/che-dev-image:nested
+    image: quay.io/cgruver0/che/nested:latest
     memoryLimit: 6Gi
     mountSources: true
     env:

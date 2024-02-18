@@ -157,12 +157,6 @@ __NOTE:__ *Do not apply these changes to a production or shared instance of OCP.
 
 1. Open a terminal into the `openshift-nested-containers` project.
 
-1. Clear the `CONTAINER_HOST` environment variable: (We're going to run this without a "remote" podman socket)
-
-   ```bash
-   unset CONTAINER_HOST
-   ```
-
 1. Run the following:
 
    ```bash

@@ -89,3 +89,48 @@ spec:
   networking: {}  
 EOF
 ```
+
+## Demo without Dev Spaces
+
+```bash
+oc adm policy add-scc-to-user nested-podman-scc <non-admin-user>
+```
+
+```bash
+cat << EOF | oc apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+ name: nested-podman
+ namespace: podman-demo
+spec:
+  containers:
+  - name: nested-podman
+    image: quay.io/cgruver0/che/nested:latest
+    args: ["tail", "-f", "/dev/null"]
+    securityContext:
+      privileged: true
+      allowPrivilegeEscalation: true
+      procMount: Unmasked
+      capabilities:
+        add:
+        - "SETUID"
+        - "SETGID"
+EOF
+```
+
+```bash
+oc rsh nested-podman
+```
+
+### Run the following container:
+
+```bash
+podman run -d --rm --name webserver -p 8080:80 quay.io/libpod/banner
+```
+
+### Observe that the container is running and listening on port 8080:
+
+```bash
+curl http://localhost:8080
+```

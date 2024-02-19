@@ -1152,18 +1152,16 @@ cat << EOF | oc apply -f -
 apiVersion: v1
 kind: Pod
 metadata:
- name: podman-proc-mount
- annotations:
-   io.kubernetes.cri-o.Devices: "/dev/fuse,/dev/net/tun"
-   io.openshift.podman-fuse: ""
+ name: nested-podman
+ namespace: podman-demo
 spec:
   containers:
-  - name: proc-mount
-    image: quay.io/cgruver0/che/che-dev-image:fuse
-    command: ["tail", "-f", "/dev/null"]
+  - name: nested-podman
+    image: image-registry.openshift-image-registry.svc:5000/podman-demo/podman-runner:latest
+    args: ["tail", "-f", "/dev/null"]
     securityContext:
+      privileged: true
       allowPrivilegeEscalation: true
-      procMount: Unmasked
       capabilities:
         add:
         - "SETUID"

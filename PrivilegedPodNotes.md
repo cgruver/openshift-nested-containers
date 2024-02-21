@@ -126,7 +126,7 @@ oc rsh nested-podman
 ### Run the following container:
 
 ```bash
-podman run -d --rm --name webserver -p 8080:80 quay.io/libpod/banner
+podman run -d --rm --name webserver --events-backend file -p 8080:80 quay.io/libpod/banner
 ```
 
 ### Observe that the container is running and listening on port 8080:

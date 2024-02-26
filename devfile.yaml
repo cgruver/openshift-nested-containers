@@ -42,10 +42,9 @@ projects:
 components:
 - name: dev-tools
   attributes:
-    # pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.nested-podman":""}}}
-    # container-overrides: {"securityContext": {"procMount": "Unmasked"}}
     container-overrides: {"securityContext": {"privileged": true}}
   container: 
+    # image: quay.io/cgruver0/che/nested-fedora:latest
     image: quay.io/cgruver0/che/nested:latest
     memoryLimit: 6Gi
     mountSources: true

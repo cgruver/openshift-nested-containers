@@ -1,0 +1,24 @@
+schemaVersion: 2.2.0
+attributes:
+  controller.devfile.io/storage-type: per-workspace
+metadata:
+  name: che-nested-containers-test
+components:
+- name: dev-tools
+  attributes:
+    container-overrides: {"securityContext": {"privileged": true}}
+  container: 
+    image: quay.io/cgruver0/che/nested:latest
+    memoryLimit: 6Gi
+    mountSources: true
+    env:
+    - name: SHELL
+      value: "/bin/zsh"
+    - name: DOCKER_CMD
+      value: podman
+- volume:
+    size: 10Gi
+  name: projects
+
+
+

@@ -43,8 +43,9 @@ components:
 - name: dev-tools
   attributes:
     # pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.nested-podman":""}}}
-    # container-overrides: {"securityContext": {"procMount": "Unmasked"}}
-    container-overrides: {"securityContext": {"privileged": true}}
+    pod-overrides: {"spec":{"hostUsers":false}}
+    container-overrides: {"securityContext": {"procMount": "Unmasked"}}
+    # container-overrides: {"securityContext": {"privileged": true}}
   container: 
     image: quay.io/cgruver0/che/che-dev-image:nested
     memoryLimit: 6Gi

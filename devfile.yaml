@@ -44,7 +44,7 @@ components:
   attributes:
     # pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.nested-podman":""}}}
     # pod-overrides: {"spec":{"hostUsers":false},"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun"}}}
-    pod-overrides: {"spec":{"hostUsers":false}}
+    pod-overrides: {"spec":{"hostUsers":false, "securityContext": {"runAsUser": 10001}}}
     container-overrides: {"securityContext": {"procMount": "Unmasked", "runAsUser": 10001}}
     # container-overrides: {"securityContext": {"privileged": true}}
   container: 

@@ -72,6 +72,8 @@ components:
     size: 10Gi
   name: projects
 - name: oc-cli
+  attributes:
+    container-overrides: {"securityContext": {"runAsUser": 10001}}
   container:
     args:
       - '-c'

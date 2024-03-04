@@ -1,0 +1,43 @@
+apiVersion: v1                      
+kind: Namespace                 
+metadata:
+  name: devspaces
+---           
+apiVersion: org.eclipse.che/v2 
+kind: CheCluster   
+metadata:              
+  name: devspaces  
+  namespace: devspaces
+spec:                         
+  components:                  
+    cheServer:      
+      debug: false
+      logLevel: INFO
+    metrics:                
+      enable: true
+    pluginRegistry:
+      openVSXURL: https://open-vsx.org
+  containerRegistry: {}      
+  devEnvironments:       
+    startTimeoutSeconds: 300
+    secondsOfRunBeforeIdling: -1
+    maxNumberOfWorkspacesPerUser: -1
+    maxNumberOfRunningWorkspacesPerUser: 5
+    containerBuildConfiguration:
+      openShiftSecurityContextConstraint: nested-containers
+    disableContainerBuildCapabilities: false
+    defaultComponents:
+    - name: dev-tools
+      container:
+        image: quay.io/cgruver0/che/dev-tools:latest
+        memoryLimit: 6Gi
+        mountSources: true
+    defaultEditor: che-incubator/che-code/latest
+    defaultNamespace:
+      autoProvision: true
+      template: <username>-devspaces
+    secondsOfInactivityBeforeIdling: 1800
+    storage:
+      pvcStrategy: per-workspace
+  gitServices: {}
+  networking: {}   

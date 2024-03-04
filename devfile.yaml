@@ -42,13 +42,10 @@ projects:
 components:
 - name: dev-tools
   attributes:
-    # pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.nested-podman":""}}}
     pod-overrides: {"spec":{"hostUsers":false, "securityContext": {"runAsUser": 10001, "fsGroup": 10001}},"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun"}}}
-    # pod-overrides: {"spec":{"hostUsers":false, "securityContext": {"runAsUser": 10001}}}
-    container-overrides: {"securityContext": {"procMount": "Unmasked", "runAsUser": 10001}}
-    # container-overrides: {"securityContext": {"privileged": true}}
+    container-overrides: {"securityContext": {"procMount": "Unmasked"}}
   container: 
-    image: quay.io/cgruver0/che/che-dev-image:nested
+    image: quay.io/cgruver0/che/nested:latest
     memoryLimit: 6Gi
     mountSources: true
     env:
@@ -72,8 +69,6 @@ components:
     size: 10Gi
   name: projects
 - name: oc-cli
-  attributes:
-    container-overrides: {"securityContext": {"runAsUser": 10001}}
   container:
     args:
       - '-c'

@@ -310,28 +310,28 @@ EOF
 module setest 1.0;
 
 require {
-	type cgroup_t;
-	type urandom_device_t;
-	type proc_kcore_t;
-	type zero_device_t;
-	type sysfs_t;
-	type device_t;
-	type kernel_t;
-	type sysctl_irq_t;
-	type devtty_t;
-	type random_device_t;
-	type proc_t;
-	type container_t;
-	type devpts_t;
-	type null_device_t;
-	type sysctl_t;
-	class system module_request;
-	class filesystem { mount remount };
-	class dir mounton;
-	class file { mounton watch };
-	class chr_file mounton;
+        type urandom_device_t;
+        type proc_kcore_t;
+        type null_device_t;
+        type kernel_t;
+        type proc_t;
+        type tmpfs_t;
+        type sysctl_irq_t;
+        type sysctl_t;
+        type device_t;
+        type container_t;
+        type random_device_t;
+        type sysfs_t;
+        type cgroup_t;
+        type zero_device_t;
+        type devtty_t;
+        type devpts_t;
+        class system module_request;
+        class filesystem { mount remount unmount };
+        class dir mounton;
+        class file { mounton watch };
+        class chr_file { mounton setattr };
 }
-
 allow container_t cgroup_t:file watch;
 allow container_t cgroup_t:filesystem { mount remount };
 allow container_t device_t:filesystem remount;
@@ -339,6 +339,7 @@ allow container_t devpts_t:filesystem mount;
 allow container_t devtty_t:chr_file mounton;
 allow container_t kernel_t:system module_request;
 allow container_t null_device_t:chr_file mounton;
+allow container_t null_device_t:chr_file setattr;
 allow container_t proc_kcore_t:file mounton;
 allow container_t proc_t:dir mounton;
 allow container_t proc_t:file mounton;
@@ -348,6 +349,8 @@ allow container_t sysctl_irq_t:dir mounton;
 allow container_t sysctl_t:dir mounton;
 allow container_t sysctl_t:file mounton;
 allow container_t sysfs_t:filesystem mount;
+allow container_t tmpfs_t:filesystem { remount unmount };
 allow container_t urandom_device_t:chr_file mounton;
 allow container_t zero_device_t:chr_file mounton;
+
 ```

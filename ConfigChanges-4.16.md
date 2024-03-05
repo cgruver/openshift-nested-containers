@@ -94,6 +94,31 @@ allow container_t sysctl_t:dir mounton;
 allow container_t sysctl_t:file mounton;
 ```
 
+```bash
+module setest 1.0;
+
+require {
+	type null_device_t;
+	type zero_device_t;
+	type urandom_device_t;
+	type random_device_t;
+	type container_file_t;
+	type container_engine_t;
+	type devtty_t;
+	type setfiles_t;
+	class chr_file { mounton read setattr write };
+	class sock_file mounton;
+}
+
+#============= container_engine_t ==============
+allow container_engine_t container_file_t:sock_file mounton;
+allow container_engine_t devtty_t:chr_file mounton;
+allow container_engine_t null_device_t:chr_file { mounton setattr };
+allow container_engine_t random_device_t:chr_file mounton;
+allow container_engine_t urandom_device_t:chr_file mounton;
+allow container_engine_t zero_device_t:chr_file mounton;
+```
+
 ## Enable a Dev Spaces workspace for Nested Containers
 
 ```yaml

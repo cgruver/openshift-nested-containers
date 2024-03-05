@@ -126,6 +126,20 @@
    EOF
    ```
 
+## Patch the kernel
+
+```bash
+scp *.rpm core@10.11.12.101:/var/home/core
+```
+
+```bash
+ssh core@10.11.12.101
+```
+
+```bash
+rpm-ostree override replace *.rpm
+```
+
 ## Change the Container Runtime to `crun`
 
 ```bash
@@ -166,6 +180,56 @@ __Note:__ Because this feature gate is still in *Alpha* state, enabling it will 
 
 ```bash
 oc patch FeatureGate cluster --type merge --patch '{"spec":{"featureSet":"CustomNoUpgrade","customNoUpgrade":{"enabled":["ProcMountType","UserNamespacesSupport"]}}}'
+```
+
+## Enable `/dev/fuse` and `/dev/net/tun`
+
+Modify `/etc/crio/crio.conf`
+
+```bash
+allowed_devices = [
+        "/dev/fuse",
+        "/dev/net/tun"
+]
+```
+
+Create `/etc/modules-load.d/nested-containers.conf`
+
+```bash
+tun
+rtnl-link-bridge
+ipt_addrtype
+```
+
+Create `/var/home/core/setest.te`
+
+```bash
+module setest 1.0;
+
+require {
+	type null_device_t;
+	type zero_device_t;
+	type urandom_device_t;
+	type random_device_t;
+	type container_file_t;
+	type container_engine_t;
+	type devtty_t;
+	type setfiles_t;
+	class chr_file { mounton read setattr write };
+	class sock_file mounton;
+}
+
+#============= container_engine_t ==============
+allow container_engine_t container_file_t:sock_file mounton;
+allow container_engine_t devtty_t:chr_file mounton;
+allow container_engine_t null_device_t:chr_file { mounton setattr };
+allow container_engine_t random_device_t:chr_file mounton;
+allow container_engine_t urandom_device_t:chr_file mounton;
+allow container_engine_t zero_device_t:chr_file mounton;
+```
+
+```bash
+checkmodule -M -m -o setest.mod setest.te && semodule_package -o setest.pp -m setest.mod && semodule -i setest.pp
 ```
 
 ## Create an SCC for nested containers
@@ -324,4 +388,3 @@ spec:
   EOF
   ```
 
-  

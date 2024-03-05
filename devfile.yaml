@@ -43,7 +43,7 @@ components:
 - name: dev-tools
   attributes:
     pod-overrides: {"spec":{"hostUsers":false, "securityContext": {"runAsUser": 10001, "fsGroup": 10001}},"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun"}}}
-    # container-overrides: {"securityContext": {"procMount": "Unmasked"}}
+    container-overrides: {"securityContext": {"procMount": "Unmasked"}}
   container: 
     image: quay.io/cgruver0/che/nested:latest
     memoryLimit: 6Gi

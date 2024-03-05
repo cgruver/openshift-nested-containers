@@ -199,12 +199,13 @@ Create `/etc/modules-load.d/nested-containers.conf`
 tun
 rtnl-link-bridge
 ipt_addrtype
+ipt_MASQUERADE
 ```
 
-Create `/var/home/core/setest.te`
+Create `/var/home/core/nested_containers.te`
 
 ```bash
-module setest 1.0;
+module nested_containers 1.0;
 
 require {
 	type null_device_t;
@@ -229,7 +230,7 @@ allow container_engine_t zero_device_t:chr_file mounton;
 ```
 
 ```bash
-checkmodule -M -m -o setest.mod setest.te && semodule_package -o setest.pp -m setest.mod && semodule -i setest.pp
+checkmodule -M -m -o nested_containers.mod nested_containers.te && semodule_package -o nested_containers.pp -m nested_containers.mod && semodule -i nested_containers.pp
 ```
 
 ## Create an SCC for nested containers

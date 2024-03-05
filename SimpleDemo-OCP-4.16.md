@@ -385,6 +385,6 @@ spec:
       pvcStrategy: per-workspace
   gitServices: {}
   networking: {}   
-  EOF
-  ```
+EOF
+```
 
